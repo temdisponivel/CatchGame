@@ -13,7 +13,7 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.LinkedList;
-import java.util.Random;
+import javax.naming.directory.InvalidAttributesException;
 import javax.swing.JPanel;
 import service.BaseService;
 import service.Message;
@@ -28,6 +28,7 @@ public class Surface extends JPanel implements ActionListener, ServiceListener {
 	private Service service;
 	private Dimension size;
 	private boolean closing = false;
+	private boolean receiving = false;
 	
 	public Surface(Dimension size) {
 		this.size = size;
@@ -41,7 +42,7 @@ public class Surface extends JPanel implements ActionListener, ServiceListener {
 		this.requestFocus();
 		
 		try {
-			this.service = new BaseService(InetAddress.getByName("239.0.0.0"), 1997, this);
+			this.service = new BaseService(InetAddress.getByName("239.0.0.0"), 1997, true, this);
 		} catch (UnknownHostException e1) {
 			e1.printStackTrace();
 		} catch (IOException e1) {
@@ -91,6 +92,8 @@ public class Surface extends JPanel implements ActionListener, ServiceListener {
 			this.service.send(message);
 		} catch (IOException e) {
 			e.printStackTrace();
+		} catch (InvalidAttributesException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -107,6 +110,9 @@ public class Surface extends JPanel implements ActionListener, ServiceListener {
 	}
 	
     public void paint(Graphics g) {
+    	if (this.receiving) {
+    		return;
+    	}
 		this.requestFocus();
         super.paintComponent(g);
         for (Player player : this.players) {
@@ -138,6 +144,7 @@ public class Surface extends JPanel implements ActionListener, ServiceListener {
 
 	@Override
 	public void receive(DatagramPacket packet, Message<?> receive) {
+		this.receiving = true;
 		try {
 			Player playerReceived = (Player) receive.getData();
 			if (playerReceived.dead) {
@@ -168,6 +175,7 @@ public class Surface extends JPanel implements ActionListener, ServiceListener {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		this.receiving = false;
 	}
 	
 	/**
@@ -190,8 +198,7 @@ public class Surface extends JPanel implements ActionListener, ServiceListener {
 					two.radius += one.radius * 0.1;
 				}
 				else {
-					boolean whitch = new Random().nextBoolean();
-					if (whitch) {
+					if (one.hashCode() < two.hashCode()) {
 						one.dead = true;
 						two.radius += one.radius * 0.1;
 					}
